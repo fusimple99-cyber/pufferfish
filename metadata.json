@@ -1,0 +1,6 @@
+{
+  "name": "一口糖 · 一尾河豚 (The Birth of a Sugar Pufferfish)",
+  "description": "中国传统吹糖人工艺沉浸式 3D 交互体验，见证琥珀色糖人河豚的诞生，长按吹气膨胀，360° 旋转观察。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

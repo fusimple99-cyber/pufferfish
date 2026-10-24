@@ -1,0 +1,65 @@
+{
+  "passed": true,
+  "source_unchanged": true,
+  "source_sha256": "629c3484a76de22744cf07a6afb09b34d68af73cf64fe4687bd94433012999c3",
+  "mesh_count": 8,
+  "total_triangles": 144672,
+  "objects": [
+    {
+      "name": "Eye_Left",
+      "source_vertices": 362,
+      "exported_vertices_including_uv_seams": 423,
+      "triangles": 720,
+      "max_position_error": 5.26909171205375e-06
+    },
+    {
+      "name": "Eye_Right",
+      "source_vertices": 362,
+      "exported_vertices_including_uv_seams": 423,
+      "triangles": 720,
+      "max_position_error": 5.26909171205375e-06
+    },
+    {
+      "name": "Fin_Dorsal",
+      "source_vertices": 1490,
+      "exported_vertices_including_uv_seams": 1615,
+      "triangles": 2976,
+      "max_position_error": 4.700574940236916e-06
+    },
+    {
+      "name": "Fin_Left",
+      "source_vertices": 1490,
+      "exported_vertices_including_uv_seams": 1615,
+      "triangles": 2976,
+      "max_position_error": 6.87909673480378e-06
+    },
+    {
+      "name": "Fin_Right",
+      "source_vertices": 1490,
+      "exported_vertices_including_uv_seams": 1615,
+      "triangles": 2976,
+      "max_position_error": 6.874716057741715e-06
+    },
+    {
+      "name": "Fin_Tail",
+      "source_vertices": 1490,
+      "exported_vertices_including_uv_seams": 1615,
+      "triangles": 2976,
+      "max_position_error": 8.124103019451079e-06
+    },
+    {
+      "name": "Pufferfish_Body",
+      "source_vertices": 64516,
+      "exported_vertices_including_uv_seams": 67985,
+      "triangles": 129024,
+      "max_position_error": 5.710821000093363e-06
+    },
+    {
+      "name": "Pufferfish_Mouth",
+      "source_vertices": 1152,
+      "exported_vertices_including_uv_seams": 1225,
+      "triangles": 2304,
+      "max_position_error": 5.98174120107188e-06
+    }
+  ]
+}

@@ -1,0 +1,233 @@
+{
+  "passed": true,
+  "initial": {
+    "scale": 1,
+    "uniform": true,
+    "meshCount": 8,
+    "meshNames": [
+      "Eye_Left",
+      "Eye_Right",
+      "Fin_Dorsal",
+      "Fin_Left",
+      "Fin_Right",
+      "Fin_Tail",
+      "Pufferfish_Body",
+      "Pufferfish_Mouth"
+    ],
+    "camera": {
+      "position": [
+        4.800000190734863,
+        2.799999952316284,
+        7.5
+      ],
+      "quaternion": [
+        -0.09555681761871052,
+        0.27943250452773843,
+        0.027960192298838327,
+        0.9549893180839003
+      ],
+      "fov": 29.58173280094495
+    },
+    "inFrame": true,
+    "projected": {
+      "minX": -0.6410492144009785,
+      "maxX": 0.4927942160429588,
+      "minY": -0.5820653708521372,
+      "maxY": 0.4649100484270559
+    },
+    "hitPoint": {
+      "x": 662.9370380647847,
+      "y": 509.53772183779336
+    },
+    "triangles": 144672,
+    "cache": {
+      "width": 751,
+      "height": 639,
+      "frames": 49,
+      "bytes": 94058244
+    },
+    "frameMs": 16.650000000000034,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)"
+  },
+  "enlarged": {
+    "scale": 1.35,
+    "uniform": true,
+    "meshCount": 8,
+    "meshNames": [
+      "Eye_Left",
+      "Eye_Right",
+      "Fin_Dorsal",
+      "Fin_Left",
+      "Fin_Right",
+      "Fin_Tail",
+      "Pufferfish_Body",
+      "Pufferfish_Mouth"
+    ],
+    "camera": {
+      "position": [
+        4.800000190734863,
+        2.799999952316284,
+        7.5
+      ],
+      "quaternion": [
+        -0.09555681761871052,
+        0.27943250452773843,
+        0.027960192298838327,
+        0.9549893180839003
+      ],
+      "fov": 29.58173280094495
+    },
+    "inFrame": true,
+    "projected": {
+      "minX": -0.8697228910502198,
+      "maxX": 0.6846373423587734,
+      "minY": -0.6977545101474134,
+      "maxY": 0.6985346785860276
+    },
+    "hitPoint": {
+      "x": 662.6792259789798,
+      "y": 441.00923376469325
+    },
+    "triangles": 144672,
+    "cache": {
+      "width": 751,
+      "height": 639,
+      "frames": 49,
+      "bytes": 94058244
+    },
+    "frameMs": 16.664999999999996,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)"
+  },
+  "mobileInitial": {
+    "scale": 1,
+    "uniform": true,
+    "meshCount": 8,
+    "meshNames": [
+      "Eye_Left",
+      "Eye_Right",
+      "Fin_Dorsal",
+      "Fin_Left",
+      "Fin_Right",
+      "Fin_Tail",
+      "Pufferfish_Body",
+      "Pufferfish_Mouth"
+    ],
+    "camera": {
+      "position": [
+        4.800000190734863,
+        2.799999952316284,
+        7.5
+      ],
+      "quaternion": [
+        -0.09555681761871052,
+        0.27943250452773843,
+        0.027960192298838327,
+        0.9549893180839003
+      ],
+      "fov": 74.61619917927196
+    },
+    "inFrame": true,
+    "projected": {
+      "minX": -0.6409337391914705,
+      "maxX": 0.4927054467034704,
+      "minY": -0.20168655485642567,
+      "maxY": 0.16109205371230795
+    },
+    "hitPoint": {
+      "x": 184.67717758018446,
+      "y": 417.6934269864009
+    },
+    "triangles": 144672,
+    "cache": {
+      "width": 399,
+      "height": 373,
+      "frames": 49,
+      "bytes": 29170092
+    },
+    "frameMs": 0,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)"
+  },
+  "mobileLarge": {
+    "scale": 1.35,
+    "uniform": true,
+    "meshCount": 8,
+    "meshNames": [
+      "Eye_Left",
+      "Eye_Right",
+      "Fin_Dorsal",
+      "Fin_Left",
+      "Fin_Right",
+      "Fin_Tail",
+      "Pufferfish_Body",
+      "Pufferfish_Mouth"
+    ],
+    "camera": {
+      "position": [
+        4.800000190734863,
+        2.799999952316284,
+        7.5
+      ],
+      "quaternion": [
+        -0.09555681761871052,
+        0.27943250452773843,
+        0.027960192298838327,
+        0.9549893180839003
+      ],
+      "fov": 74.61619917927196
+    },
+    "inFrame": true,
+    "projected": {
+      "minX": -0.8695662237760046,
+      "maxX": 0.6845140154148042,
+      "minY": -0.24177302126931371,
+      "maxY": 0.24204335084477263
+    },
+    "hitPoint": {
+      "x": 184.60537143624762,
+      "y": 398.60678695170577
+    },
+    "triangles": 144672,
+    "cache": {
+      "width": 399,
+      "height": 373,
+      "frames": 49,
+      "bytes": 29170092
+    },
+    "frameMs": 16.666666666666668,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)"
+  },
+  "errors": [],
+  "requests": [
+    "http://127.0.0.1:8765/",
+    "http://127.0.0.1:8765/style.css",
+    "http://127.0.0.1:8765/app.js",
+    "http://127.0.0.1:8765/vendor/three.module.js",
+    "http://127.0.0.1:8765/vendor/addons/loaders/GLTFLoader.js",
+    "http://127.0.0.1:8765/interaction.js",
+    "http://127.0.0.1:8765/glass-renderer.js",
+    "http://127.0.0.1:8765/vendor/addons/utils/BufferGeometryUtils.js",
+    "http://127.0.0.1:8765/vendor/three-mesh-bvh.js",
+    "http://127.0.0.1:8765/vendor/three.core.js",
+    "http://127.0.0.1:8765/assets/pufferfish.glb",
+    "http://127.0.0.1:8765/assets/scene.json",
+    "blob:http://127.0.0.1:8765/a1d0e164-9610-4dbd-9928-fd0d377e9ad7",
+    "blob:http://127.0.0.1:8765/2998f171-2ebe-4cfe-a2d7-0964e190fe3f",
+    "blob:http://127.0.0.1:8765/92301a0d-9e2f-4481-833d-b98d2564f7a4",
+    "blob:http://127.0.0.1:8765/ad41c9ce-d971-4380-b492-9c0bf4cfc3af",
+    "blob:http://127.0.0.1:8765/478ecd5b-169e-49c8-8469-146302b39f8e",
+    "blob:http://127.0.0.1:8765/03d6959a-9d62-4472-8657-02a68cfc4ee7"
+  ],
+  "checks": [
+    "mouse hold",
+    "release",
+    "repress continuity",
+    "fixed camera",
+    "uniform scale",
+    "background miss",
+    "blur release",
+    "mobile touch hold",
+    "touch cancel",
+    "maximum fits desktop/mobile",
+    "local requests only"
+  ]
+}
