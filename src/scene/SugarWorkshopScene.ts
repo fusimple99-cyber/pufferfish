@@ -14,7 +14,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { ScaleMotionController, applyDamping, clampPitch, isDragMovement } from '../utils/motion';
 import { sugarAudio } from '../utils/audio';
 
-export type WorkshopLightingMode = 'warm_workshop' | 'candle_glow' | 'morning_amber';
+export type WorkshopLightingMode = 'warm_market' | 'sunset_amber' | 'morning_dew';
 
 export interface SceneInspectionData {
   meshCount: number;
@@ -58,28 +58,31 @@ export class SugarWorkshopScene {
   public modelCenter = new THREE.Vector3();
   public isModelLoaded = false;
 
-  // Workshop Props
+  // Workshop Props - Cozy Traditional Sugar Stall (温馨非遗吹糖人市集小摊)
   private workshopGroup = new THREE.Group();
+  private backdropMesh!: THREE.Mesh;
   private syrupPotMesh!: THREE.Mesh;
   private syrupLiquidMesh!: THREE.Mesh;
   private steamParticles!: THREE.Points;
   private bambooPipe!: THREE.Group;
   private craftToolsGroup = new THREE.Group();
   private sugarEmbryo!: THREE.Mesh;
+  public chefHatGroup = new THREE.Group();
+  public isChefHatVisible = true;
 
-  // Lights
-  private keyLight!: THREE.SpotLight;
-  private fillLight!: THREE.DirectionalLight;
-  private amberBacklight!: THREE.PointLight;
-  private candleLight!: THREE.PointLight;
+  // Lights - Warm sunlit market daylight
+  private sunLight!: THREE.DirectionalLight;
   private ambientLight!: THREE.AmbientLight;
+  private sunbeamLight!: THREE.DirectionalLight;
+  private fillLight!: THREE.DirectionalLight;
   private fireGlowLight!: THREE.PointLight;
+  private amberBacklight!: THREE.PointLight;
 
   // Motion & Interaction
   public scaleController = new ScaleMotionController();
   public rotationVelocity = { x: 0, y: 0 };
-  public rotationTarget = { x: 0, y: 0 };
-  public currentRotation = { x: 0, y: 0 };
+  public rotationTarget = { x: 0.08, y: -Math.PI * 0.38 };
+  public currentRotation = { x: 0.08, y: -Math.PI * 0.38 };
   private isPointerDown = false;
   private isDragging = false;
   private pointerDownPos = { x: 0, y: 0 };
@@ -135,7 +138,7 @@ export class SugarWorkshopScene {
 
     // 2. Scene & PMREM Environment
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color('#1f140c'); // Deep atmospheric lacquer warm brown
+    this.scene.background = new THREE.Color('#faebd7'); // Warm peach-apricot sunlit morning atmosphere
 
     // PMREM Environment map for realistic amber glass reflection & refraction
     const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
@@ -146,15 +149,15 @@ export class SugarWorkshopScene {
     pmremGenerator.dispose();
     roomEnv.dispose();
 
-    // 3. Camera - Canonical Front 3/4 Studio View
+    // 3. Camera - Cozy Eye-Level View Facing the Stall (as in Reference Images 1 & 2)
     this.camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 50);
-    this.camera.position.set(2.85, 1.85, 4.25);
-    this.camera.lookAt(0, 0.88, 0);
+    this.camera.position.set(0, 1.48, 4.35);
+    this.camera.lookAt(0, 0.92, 0);
 
     // 4. Setup Lighting
     this.setupLighting();
 
-    // 5. Build Workshop Environment (Workbench, Kettle, Tools, Steam)
+    // 5. Build Workshop Environment (Stall, Canopy, Marble Slab, Stove, Bowls, Steam, Backdrop)
     this.buildWorkshopEnvironment();
 
     // 6. Build Creation Sequence Props (Sugar Embryo, Reed Straw)
@@ -171,223 +174,589 @@ export class SugarWorkshopScene {
   }
 
   private setupLighting() {
-    // Ambient light - warm soft undertone
-    this.ambientLight = new THREE.AmbientLight(0xffeed6, 0.6);
+    // 1. Warm Sunbeam Directional Light (金乌朝阳，照亮案台与石板)
+    this.sunLight = new THREE.DirectionalLight(0xfff3db, 3.2);
+    this.sunLight.position.set(3.5, 4.5, 2.8);
+    this.sunLight.castShadow = !isSoftwareGl;
+    if (!isSoftwareGl) {
+      this.sunLight.shadow.mapSize.width = 1024;
+      this.sunLight.shadow.mapSize.height = 1024;
+      this.sunLight.shadow.camera.near = 0.5;
+      this.sunLight.shadow.camera.far = 15;
+      this.sunLight.shadow.camera.left = -3;
+      this.sunLight.shadow.camera.right = 3;
+      this.sunLight.shadow.camera.top = 3;
+      this.sunLight.shadow.camera.bottom = -3;
+      this.sunLight.shadow.bias = -0.0002;
+    }
+    this.scene.add(this.sunLight);
+
+    // 2. Ambient Light - Bright, open, cozy warm market atmosphere
+    this.ambientLight = new THREE.AmbientLight(0xfff1e2, 1.35);
     this.scene.add(this.ambientLight);
 
-    // Key Light - warm honey studio spotlight
-    this.keyLight = new THREE.SpotLight(0xffdfa8, 3.8);
-    this.keyLight.position.set(2.5, 4.0, 3.2);
-    this.keyLight.angle = Math.PI / 4.5;
-    this.keyLight.penumbra = 0.6;
-    this.keyLight.castShadow = !isSoftwareGl;
-    if (!isSoftwareGl) {
-      this.keyLight.shadow.mapSize.width = 1024;
-      this.keyLight.shadow.mapSize.height = 1024;
-      this.keyLight.shadow.bias = -0.0001;
-    }
-    this.scene.add(this.keyLight);
+    // 3. Golden Rim & Tyndall Backlight (透光琥珀边缘高光)
+    this.sunbeamLight = new THREE.DirectionalLight(0xffd18a, 2.4);
+    this.sunbeamLight.position.set(-2.2, 3.5, -2.5);
+    this.scene.add(this.sunbeamLight);
 
-    // Front Fill Light - soft warm glow
-    this.fillLight = new THREE.DirectionalLight(0xffecd4, 1.4);
-    this.fillLight.position.set(-2.0, 2.5, 3.0);
+    // 4. Soft Front Counter Fill
+    this.fillLight = new THREE.DirectionalLight(0xffedd8, 1.2);
+    this.fillLight.position.set(0, 2.5, 3.5);
     this.scene.add(this.fillLight);
 
-    // Amber Backlight - gives the golden translucent rim & inner radiance
-    this.amberBacklight = new THREE.PointLight(0xff7700, 4.2, 10, 1.2);
-    this.amberBacklight.position.set(-1.8, 1.6, -1.8);
-    this.scene.add(this.amberBacklight);
-
-    // Candle / Charcoal Stove Fire Glow
-    this.fireGlowLight = new THREE.PointLight(0xff5500, 2.8, 5, 1.5);
-    this.fireGlowLight.position.set(-1.4, 0.4, -0.6);
+    // 5. Warm Syrup Stove Glow
+    this.fireGlowLight = new THREE.PointLight(0xff6e1a, 2.2, 3.5, 1.4);
+    this.fireGlowLight.position.set(-1.55, 0.45, 0.15);
     this.scene.add(this.fireGlowLight);
 
-    // Top Soft Warm Fill
-    this.candleLight = new THREE.PointLight(0xffba59, 2.0, 8, 1.2);
-    this.candleLight.position.set(1.2, 2.8, 1.0);
-    this.scene.add(this.candleLight);
+    // 6. Amber Translucent Sugar Core Backlight (透光琥珀内芯柔光)
+    this.amberBacklight = new THREE.PointLight(0xff8811, 4.2, 4.5, 1.2);
+    this.amberBacklight.position.set(0, 1.05, -0.6);
+    this.scene.add(this.amberBacklight);
   }
 
   public setLightingMode(mode: WorkshopLightingMode) {
-    if (mode === 'warm_workshop') {
-      this.renderer.toneMappingExposure = 1.15;
-      this.keyLight.color.set('#ffdfa8');
-      this.keyLight.intensity = 3.8;
-      this.amberBacklight.color.set('#ff7700');
+    if (mode === 'warm_market') {
+      this.renderer.toneMappingExposure = 1.3;
+      this.sunLight.color.set('#fff3db');
+      this.sunLight.intensity = 3.2;
+      this.ambientLight.color.set('#fff1e2');
+      this.ambientLight.intensity = 1.35;
+      this.sunbeamLight.color.set('#ffd18a');
+      this.sunbeamLight.intensity = 2.4;
+      this.amberBacklight.color.set('#ff8811');
       this.amberBacklight.intensity = 4.2;
-      this.scene.background = new THREE.Color('#1c130c');
-    } else if (mode === 'candle_glow') {
-      this.renderer.toneMappingExposure = 1.05;
-      this.keyLight.color.set('#ff9e42');
-      this.keyLight.intensity = 2.4;
-      this.amberBacklight.color.set('#ff4e00');
-      this.amberBacklight.intensity = 5.5;
-      this.scene.background = new THREE.Color('#120a06');
-    } else if (mode === 'morning_amber') {
-      this.renderer.toneMappingExposure = 1.28;
-      this.keyLight.color.set('#fff1de');
-      this.keyLight.intensity = 4.5;
-      this.amberBacklight.color.set('#ffa64d');
-      this.amberBacklight.intensity = 3.6;
-      this.scene.background = new THREE.Color('#241913');
+      this.scene.background = new THREE.Color('#faebd7');
+    } else if (mode === 'sunset_amber') {
+      this.renderer.toneMappingExposure = 1.22;
+      this.sunLight.color.set('#ffad54');
+      this.sunLight.intensity = 3.5;
+      this.ambientLight.color.set('#ffe1cc');
+      this.ambientLight.intensity = 1.15;
+      this.sunbeamLight.color.set('#ff6e1a');
+      this.sunbeamLight.intensity = 3.8;
+      this.amberBacklight.color.set('#ff6600');
+      this.amberBacklight.intensity = 5.0;
+      this.scene.background = new THREE.Color('#f7d0b2');
+    } else if (mode === 'morning_dew') {
+      this.renderer.toneMappingExposure = 1.35;
+      this.sunLight.color.set('#fffcf0');
+      this.sunLight.intensity = 3.6;
+      this.ambientLight.color.set('#fbf6ee');
+      this.ambientLight.intensity = 1.4;
+      this.sunbeamLight.color.set('#ffe8ba');
+      this.sunbeamLight.intensity = 2.2;
+      this.amberBacklight.color.set('#ffaa33');
+      this.amberBacklight.intensity = 3.8;
+      this.scene.background = new THREE.Color('#fdf5ea');
     }
   }
 
   /**
-   * Builds the traditional Chinese sugar-blowing craft table, heated copper kettle, tools, and steam
+   * Builds the cozy Chinese sugar-blowing market stall (温馨非遗吹糖人小摊 - Reference Images 1 & 2)
    */
   private buildWorkshopEnvironment() {
     this.workshopGroup.name = 'Workshop_Environment';
 
-    // 1. Artisan's Wooden Workbench (老榆木厚板工作台)
-    const tableWidth = 6.0;
-    const tableDepth = 4.2;
-    const tableHeight = 0.12;
+    // 1. Panoramic Warm Morning Bokeh Backdrop (晨光街景远景大背景)
+    const backdropGeo = new THREE.PlaneGeometry(16, 9);
+    const backdropMat = new THREE.MeshBasicMaterial({
+      map: this.generateWarmBackdropTexture(),
+      depthWrite: false,
+    });
+    this.backdropMesh = new THREE.Mesh(backdropGeo, backdropMat);
+    this.backdropMesh.position.set(0, 1.65, -3.2);
+    this.workshopGroup.add(this.backdropMesh);
 
-    const tableGeo = new THREE.BoxGeometry(tableWidth, tableHeight, tableDepth, 32, 2, 32);
+    // 2. Honey Oak Market Stall Counter (暖色原木集市操作台)
+    const counterWidth = 5.8;
+    const counterDepth = 3.2;
+    const counterHeight = 0.12;
 
-    // Procedural dark walnut / rosewood texture with subtle grain and golden varnish
-    const woodTexture = this.generateWoodTexture();
+    const counterGeo = new THREE.BoxGeometry(counterWidth, counterHeight, counterDepth);
+    const woodTexture = this.generateHoneyWoodTexture();
     const woodMaterial = new THREE.MeshStandardMaterial({
       map: woodTexture,
+      roughness: 0.45,
+      metalness: 0.04,
+      color: new THREE.Color('#d89b65'),
+    });
+
+    const counterMesh = new THREE.Mesh(counterGeo, woodMaterial);
+    counterMesh.position.set(0, -counterHeight / 2, 0);
+    counterMesh.receiveShadow = true;
+    this.workshopGroup.add(counterMesh);
+
+    // Front vertical slatted apron (摊位正面木质立板条)
+    const apronGeo = new THREE.BoxGeometry(counterWidth, 1.4, 0.08);
+    const apronMesh = new THREE.Mesh(apronGeo, woodMaterial);
+    apronMesh.position.set(0, -0.76, counterDepth / 2 - 0.04);
+    this.workshopGroup.add(apronMesh);
+
+    // 3. Wooden Support Pillars & Back Railing (摊位支撑木柱与后侧栏杆)
+    const pillarGeo = new THREE.CylinderGeometry(0.065, 0.065, 2.3, 16);
+    const leftPillar = new THREE.Mesh(pillarGeo, woodMaterial);
+    leftPillar.position.set(-2.35, 1.05, -0.6);
+    const rightPillar = new THREE.Mesh(pillarGeo, woodMaterial);
+    rightPillar.position.set(2.35, 1.05, -0.6);
+    this.workshopGroup.add(leftPillar, rightPillar);
+
+    // Horizontal top beam
+    const topBeamGeo = new THREE.BoxGeometry(5.2, 0.08, 0.08);
+    const topBeam = new THREE.Mesh(topBeamGeo, woodMaterial);
+    topBeam.position.set(0, 2.15, -0.6);
+    this.workshopGroup.add(topBeam);
+
+    // Back horizontal railing (背景木质围栏)
+    const backRailingGeo = new THREE.BoxGeometry(5.2, 0.06, 0.06);
+    const backRailing = new THREE.Mesh(backRailingGeo, woodMaterial);
+    backRailing.position.set(0, 0.95, -0.95);
+    this.workshopGroup.add(backRailing);
+
+    // 4. Scalloped Fabric Canopy Awning (红白相间波浪遮阳雨棚 - 参考图 1 & 2 核心特征)
+    this.buildScallopedAwning();
+
+    // 5. Central Polished White Marble / Stone Slab (中央温润汉白玉/打磨石板)
+    // Both Reference Image 1 & 2 show this smooth rectangular stone slab where the sugar craft sits!
+    const marbleGeo = new THREE.BoxGeometry(1.85, 0.045, 1.3);
+    const marbleTex = this.generateMarbleTexture();
+    const marbleMat = new THREE.MeshStandardMaterial({
+      map: marbleTex,
       roughness: 0.32,
-      metalness: 0.08,
-      color: new THREE.Color('#422718'),
+      metalness: 0.02,
+      color: new THREE.Color('#dfd4c2'),
     });
+    const marbleSlab = new THREE.Mesh(marbleGeo, marbleMat);
+    marbleSlab.position.set(0, 0.0225, 0.05);
+    marbleSlab.receiveShadow = true;
+    this.workshopGroup.add(marbleSlab);
 
-    const tableMesh = new THREE.Mesh(tableGeo, woodMaterial);
-    tableMesh.position.set(0, -tableHeight / 2, 0);
-    tableMesh.receiveShadow = true;
-    this.workshopGroup.add(tableMesh);
-
-    // Table apron & legs
-    const legGeo = new THREE.CylinderGeometry(0.09, 0.08, 1.8, 16);
-    const legPositions = [
-      [-2.4, -0.9, -1.6],
-      [2.4, -0.9, -1.6],
-      [-2.4, -0.9, 1.6],
-      [2.4, -0.9, 1.6],
-    ];
-    legPositions.forEach(([x, y, z]) => {
-      const leg = new THREE.Mesh(legGeo, woodMaterial);
-      leg.position.set(x, y, z);
-      this.workshopGroup.add(leg);
-    });
-
-    // 2. Heated Brass/Copper Sugar Pot (紫铜保温糖锅) & Earthenware Brazier (陶土炭火炉)
+    // 6. Left Tabletop Stove & Pot of Warm Syrup (左侧米白电陶炉台与温糖锅 - 参考图 1 & 2)
     const stoveGroup = new THREE.Group();
-    stoveGroup.position.set(-1.45, 0.0, -0.65);
+    stoveGroup.position.set(-1.55, 0.0, 0.15);
 
-    // Ceramic / earthenware stove body
-    const stoveGeo = new THREE.CylinderGeometry(0.48, 0.42, 0.45, 28);
-    const stoveMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#2e2119'),
-      roughness: 0.85,
-      metalness: 0.1,
+    // Compact cream-white stove body (米白圆润炉座)
+    const stoveBaseGeo = new THREE.BoxGeometry(0.72, 0.14, 0.65);
+    const stoveBaseMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#ede5dc'),
+      roughness: 0.35,
+      metalness: 0.05,
     });
-    const stoveMesh = new THREE.Mesh(stoveGeo, stoveMat);
-    stoveMesh.position.y = 0.225;
-    stoveMesh.castShadow = true;
-    stoveGroup.add(stoveMesh);
+    const stoveBase = new THREE.Mesh(stoveBaseGeo, stoveBaseMat);
+    stoveBase.position.y = 0.07;
+    stoveBase.receiveShadow = true;
+    stoveGroup.add(stoveBase);
 
-    // Charcoal air vent opening
-    const ventGeo = new THREE.BoxGeometry(0.2, 0.15, 0.1);
-    const ventMat = new THREE.MeshBasicMaterial({ color: 0xff3b00 });
-    const vent = new THREE.Mesh(ventGeo, ventMat);
-    vent.position.set(0, 0.15, 0.42);
-    stoveGroup.add(vent);
+    // Heating surface ring
+    const burnerRingGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.015, 32);
+    const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x38332e, roughness: 0.35, metalness: 0.6 });
+    const burnerRing = new THREE.Mesh(burnerRingGeo, darkMetalMat);
+    burnerRing.position.y = 0.145;
+    stoveGroup.add(burnerRing);
 
-    // Brass / Copper Pot (紫铜双耳平底温锅)
-    const potGeo = new THREE.CylinderGeometry(0.45, 0.38, 0.28, 32, 1, true);
-    const copperMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#a85a2c'),
-      roughness: 0.28,
-      metalness: 0.82,
+    // Rotary knob on front face
+    const knobGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.02, 20);
+    const knob = new THREE.Mesh(knobGeo, darkMetalMat);
+    knob.rotation.x = Math.PI / 2;
+    knob.position.set(0, 0.07, 0.33);
+    stoveGroup.add(knob);
+
+    // Cooking Pot (双耳炖锅)
+    const potGeo = new THREE.CylinderGeometry(0.36, 0.32, 0.24, 32, 1, true);
+    const potMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#ded7d0'),
+      roughness: 0.3,
+      metalness: 0.25,
     });
-    this.syrupPotMesh = new THREE.Mesh(potGeo, copperMat);
-    this.syrupPotMesh.position.y = 0.45;
-    this.syrupPotMesh.castShadow = true;
+    this.syrupPotMesh = new THREE.Mesh(potGeo, potMat);
+    this.syrupPotMesh.position.y = 0.26;
+    this.syrupPotMesh.castShadow = !isSoftwareGl;
     stoveGroup.add(this.syrupPotMesh);
 
     // Pot Rim
-    const potRimGeo = new THREE.TorusGeometry(0.45, 0.024, 16, 48);
-    const potRim = new THREE.Mesh(potRimGeo, copperMat);
+    const potRimGeo = new THREE.TorusGeometry(0.36, 0.02, 16, 40);
+    const potRim = new THREE.Mesh(potRimGeo, potMat);
     potRim.rotation.x = Math.PI / 2;
-    potRim.position.y = 0.58;
+    potRim.position.y = 0.38;
     stoveGroup.add(potRim);
 
     // Pot Handles
-    const handleGeo = new THREE.TorusGeometry(0.08, 0.015, 12, 24, Math.PI);
-    const handle1 = new THREE.Mesh(handleGeo, copperMat);
-    handle1.position.set(0.46, 0.52, 0);
+    const handleGeo = new THREE.TorusGeometry(0.065, 0.014, 12, 24, Math.PI);
+    const handle1 = new THREE.Mesh(handleGeo, darkMetalMat);
+    handle1.position.set(0.37, 0.32, 0);
     handle1.rotation.z = -Math.PI / 2;
-    const handle2 = new THREE.Mesh(handleGeo, copperMat);
-    handle2.position.set(-0.46, 0.52, 0);
+    const handle2 = new THREE.Mesh(handleGeo, darkMetalMat);
+    handle2.position.set(-0.37, 0.32, 0);
     handle2.rotation.z = Math.PI / 2;
     stoveGroup.add(handle1, handle2);
 
-    // Viscous Amber Maltose Syrup Liquid (锅中浓稠蜂蜜金麦芽糖浆)
-    const syrupGeo = new THREE.CircleGeometry(0.43, 32);
+    // Viscous Amber Maltose Syrup Liquid (锅中浓稠温热蜂蜜金麦芽糖浆)
+    const syrupGeo = new THREE.CircleGeometry(0.34, 32);
     const syrupMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color('#d9720b'),
-      roughness: 0.08,
+      color: new THREE.Color('#e8661b'),
+      roughness: 0.06,
       metalness: 0.0,
-      transmission: 0.85,
+      transmission: 0.88,
       ior: 1.54,
-      thickness: 0.4,
-      attenuationColor: new THREE.Color('#8f3b00'),
+      thickness: 0.35,
+      attenuationColor: new THREE.Color('#943800'),
       attenuationDistance: 0.3,
-      specularIntensity: 1.2,
+      specularIntensity: 1.4,
     });
     this.syrupLiquidMesh = new THREE.Mesh(syrupGeo, syrupMat);
     this.syrupLiquidMesh.rotation.x = -Math.PI / 2;
-    this.syrupLiquidMesh.position.y = 0.53;
+    this.syrupLiquidMesh.position.y = 0.34;
     stoveGroup.add(this.syrupLiquidMesh);
+
+    // Wooden Stirring Spoon resting in pot (参考图 2 木勺)
+    const spoonHandleGeo = new THREE.CylinderGeometry(0.012, 0.01, 0.45, 12);
+    const spoonWoodMat = new THREE.MeshStandardMaterial({ color: 0x6e4326, roughness: 0.45 });
+    const spoonHandle = new THREE.Mesh(spoonHandleGeo, spoonWoodMat);
+    spoonHandle.position.set(0.12, 0.44, 0.08);
+    spoonHandle.rotation.set(-0.35, 0.2, 0.4);
+    stoveGroup.add(spoonHandle);
 
     this.workshopGroup.add(stoveGroup);
 
-    // 3. Delicate Steam Particles rising from the hot syrup pot
+    // Steam particles rising from the hot syrup pot
     this.buildSteamParticles(stoveGroup.position);
 
-    // 4. Traditional Sugar-crafting Tools (摆放工具)
+    // 7. Right Side Ceramic Bowls (右侧白瓷调糖双碗 - 参考图 1)
+    this.buildCeramicBowls();
+
+    // 8. Traditional Sugar Figurine Display & Folk Art Stand (特色吹糖人展架 - 参考图 2)
+    this.buildFolkArtDisplays();
+
+    // 9. Crafting Tools (竹管、金属修整扦、竹签)
     this.buildCraftTools();
 
     this.scene.add(this.workshopGroup);
   }
 
   /**
-   * Generates procedural dark polished walnut wood texture
+   * Builds the scalloped red-and-cream fabric awning across the top (波浪花边雨棚)
    */
-  private generateWoodTexture(): THREE.CanvasTexture {
+  private buildScallopedAwning() {
+    const awningGroup = new THREE.Group();
+    awningGroup.name = 'Scalloped_Awning';
+
+    // Top slanted roof
+    const roofGeo = new THREE.BoxGeometry(5.8, 0.035, 1.4);
+    const roofMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#f8ebd6'),
+      roughness: 0.7,
+      metalness: 0.0,
+    });
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.set(0, 2.22, -0.15);
+    roof.rotation.x = 0.08;
+    awningGroup.add(roof);
+
+    // Alternating Terracotta-red and Cream-white hanging scallops (14 个波浪圆弧花边)
+    const redMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#b8543f'),
+      roughness: 0.65,
+      metalness: 0.0,
+    });
+    const creamMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#fbf4e6'),
+      roughness: 0.65,
+      metalness: 0.0,
+    });
+
+    const scallopCount = 14;
+    const startX = -2.6;
+    const stepX = 5.2 / scallopCount;
+
+    for (let i = 0; i < scallopCount; i++) {
+      const cx = startX + stepX * (i + 0.5);
+      const isRed = i % 2 === 0;
+      const mat = isRed ? redMat : creamMat;
+
+      // Curved scallop drop (semi-cylinder rounded drop)
+      const scallopGeo = new THREE.CylinderGeometry(stepX * 0.5, stepX * 0.5, 0.02, 16, 1, false, Math.PI, Math.PI);
+      const scallop = new THREE.Mesh(scallopGeo, mat);
+      scallop.rotation.z = Math.PI;
+      scallop.rotation.x = Math.PI / 2;
+      scallop.position.set(cx, 2.08, 0.45);
+      awningGroup.add(scallop);
+
+      // Backing valence flap
+      const flapGeo = new THREE.BoxGeometry(stepX, 0.12, 0.02);
+      const flap = new THREE.Mesh(flapGeo, mat);
+      flap.position.set(cx, 2.14, 0.45);
+      awningGroup.add(flap);
+    }
+
+    this.workshopGroup.add(awningGroup);
+  }
+
+  /**
+   * Builds the dual white ceramic bowls on the right (白瓷调糖双碗 - 参考图 1)
+   */
+  private buildCeramicBowls() {
+    const bowlsGroup = new THREE.Group();
+    bowlsGroup.name = 'Ceramic_Bowls';
+
+    const bowlMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#faf5ee'),
+      roughness: 0.18,
+      metalness: 0.04,
+    });
+
+    // Bowl 1: Syrup / Vegetable Oil Bowl (盛放温糖油的浅碗)
+    const bowl1Geo = new THREE.CylinderGeometry(0.22, 0.14, 0.11, 28);
+    const bowl1 = new THREE.Mesh(bowl1Geo, bowlMat);
+    bowl1.position.set(1.35, 0.055, 0.25);
+    bowl1.castShadow = !isSoftwareGl;
+    bowl1.receiveShadow = true;
+    bowlsGroup.add(bowl1);
+
+    // Liquid in Bowl 1 (金黄植物调和油/清亮麦芽汁)
+    const oilGeo = new THREE.CircleGeometry(0.19, 24);
+    const oilMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#f8c75d'),
+      roughness: 0.08,
+      metalness: 0.0,
+      transmission: 0.85,
+      ior: 1.48,
+    });
+    const oil = new THREE.Mesh(oilGeo, oilMat);
+    oil.rotation.x = -Math.PI / 2;
+    oil.position.set(1.35, 0.095, 0.25);
+    bowlsGroup.add(oil);
+
+    // Bowl 2: White Starch / Sugar Powder Bowl (扑粉白瓷碗)
+    const bowl2Geo = new THREE.CylinderGeometry(0.22, 0.14, 0.11, 28);
+    const bowl2 = new THREE.Mesh(bowl2Geo, bowlMat);
+    bowl2.position.set(1.85, 0.055, 0.25);
+    bowl2.castShadow = !isSoftwareGl;
+    bowl2.receiveShadow = true;
+    bowlsGroup.add(bowl2);
+
+    // Powder in Bowl 2 (细腻熟米粉/糖霜)
+    const powderGeo = new THREE.CircleGeometry(0.19, 24);
+    const powderMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#ffffff'),
+      roughness: 0.95,
+      metalness: 0.0,
+    });
+    const powder = new THREE.Mesh(powderGeo, powderMat);
+    powder.rotation.x = -Math.PI / 2;
+    powder.position.set(1.85, 0.095, 0.25);
+    bowlsGroup.add(powder);
+
+    this.workshopGroup.add(bowlsGroup);
+  }
+
+  /**
+   * Builds the folk art displays: "吹糖人" jar with lollipops and wooden display rack (参考图 2)
+   */
+  private buildFolkArtDisplays() {
+    const folkGroup = new THREE.Group();
+    folkGroup.name = 'Folk_Art_Displays';
+
+    // 1. Rustic Wooden Jar labeled "吹糖人" (左后方工具陶罐/木桶)
+    const jarGroup = new THREE.Group();
+    jarGroup.position.set(-1.85, 0.0, -0.55);
+
+    const jarGeo = new THREE.CylinderGeometry(0.18, 0.15, 0.32, 24);
+    const jarMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#6a452a'),
+      roughness: 0.55,
+      metalness: 0.05,
+    });
+    const jarMesh = new THREE.Mesh(jarGeo, jarMat);
+    jarMesh.position.y = 0.16;
+    jarMesh.castShadow = !isSoftwareGl;
+    jarGroup.add(jarMesh);
+
+    // "吹糖人" Label
+    const labelGeo = new THREE.PlaneGeometry(0.14, 0.18);
+    const labelMat = new THREE.MeshStandardMaterial({
+      map: this.generateJarLabel(),
+      roughness: 0.6,
+    });
+    const label = new THREE.Mesh(labelGeo, labelMat);
+    label.position.set(0, 0.16, 0.182);
+    jarGroup.add(label);
+
+    // Bamboo sticks sticking out of jar
+    const stickMat = new THREE.MeshStandardMaterial({ color: 0xd4af68, roughness: 0.45 });
+    for (let i = 0; i < 4; i++) {
+      const stickGeo = new THREE.CylinderGeometry(0.007, 0.007, 0.55, 8);
+      const stick = new THREE.Mesh(stickGeo, stickMat);
+      stick.position.set((i - 1.5) * 0.04, 0.35, (Math.random() - 0.5) * 0.06);
+      stick.rotation.set((Math.random() - 0.5) * 0.2, 0, (Math.random() - 0.5) * 0.25);
+      jarGroup.add(stick);
+    }
+
+    // Finished Amber Sugar Bird Lollipop on a stick (小萌鸟糖人)
+    const birdGroup = new THREE.Group();
+    birdGroup.position.set(-0.06, 0.58, 0);
+    const sugarMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#ffc26a'),
+      transmission: 0.92,
+      roughness: 0.04,
+      ior: 1.52,
+      thickness: 0.3,
+      attenuationColor: new THREE.Color('#ff7300'),
+      attenuationDistance: 1.5,
+    });
+    const birdBody = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), sugarMat);
+    const birdHead = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), sugarMat);
+    birdHead.position.set(0.06, 0.06, 0);
+    const birdBeak = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.04, 8), sugarMat);
+    birdBeak.rotation.z = -Math.PI / 2;
+    birdBeak.position.set(0.12, 0.06, 0);
+    birdGroup.add(birdBody, birdHead, birdBeak);
+    jarGroup.add(birdGroup);
+
+    folkGroup.add(jarGroup);
+
+    // 2. Right Side Tiered Wooden Lollipop Display Stand (右后方糖人展示小木架)
+    const rackGroup = new THREE.Group();
+    rackGroup.position.set(1.85, 0.0, -0.55);
+
+    const rackWoodMat = new THREE.MeshStandardMaterial({ color: 0x5a3820, roughness: 0.5 });
+    const basePlate = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.05, 0.35), rackWoodMat);
+    basePlate.position.y = 0.025;
+    const stepPlate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.18), rackWoodMat);
+    stepPlate.position.set(0, 0.065, -0.06);
+    rackGroup.add(basePlate, stepPlate);
+
+    // Cute Amber Sugar Bear Lollipop (晶莹小萌熊糖人)
+    const bearStick = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.6, 8), stickMat);
+    bearStick.position.set(-0.12, 0.32, -0.06);
+    rackGroup.add(bearStick);
+
+    const bearGroup = new THREE.Group();
+    bearGroup.position.set(-0.12, 0.58, -0.06);
+    const bearFace = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), sugarMat);
+    const ear1 = new THREE.Mesh(new THREE.SphereGeometry(0.038, 12, 12), sugarMat);
+    ear1.position.set(-0.065, 0.075, 0);
+    const ear2 = new THREE.Mesh(new THREE.SphereGeometry(0.038, 12, 12), sugarMat);
+    ear2.position.set(0.065, 0.075, 0);
+    bearGroup.add(bearFace, ear1, ear2);
+    rackGroup.add(bearGroup);
+
+    // Goldfish Sugar Lollipop (锦鲤金鱼糖人)
+    const fishStick = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.65, 8), stickMat);
+    fishStick.position.set(0.12, 0.35, -0.06);
+    rackGroup.add(fishStick);
+
+    const fishLolly = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), sugarMat);
+    fishLolly.scale.set(1.2, 0.8, 0.6);
+    fishLolly.position.set(0.12, 0.65, -0.06);
+    const fishTail = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.12, 12), sugarMat);
+    fishTail.rotation.z = Math.PI / 2;
+    fishTail.position.set(0.02, 0.65, -0.06);
+    rackGroup.add(fishLolly, fishTail);
+
+    folkGroup.add(rackGroup);
+
+    // 3. Background Hanging Linen Banner (背景萌趣非遗挂帘 - 参考图 1 & 2)
+    const bannerGeo = new THREE.PlaneGeometry(0.95, 1.25);
+    const bannerMat = new THREE.MeshStandardMaterial({
+      map: this.generateBannerTexture(),
+      roughness: 0.65,
+    });
+    const banner = new THREE.Mesh(bannerGeo, bannerMat);
+    banner.position.set(-1.45, 1.55, -0.85);
+    folkGroup.add(banner);
+
+    this.workshopGroup.add(folkGroup);
+  }
+
+  /**
+   * Generates procedural warm golden morning street bokeh backdrop texture
+   */
+  private generateWarmBackdropTexture(): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 576;
+    const ctx = canvas.getContext('2d')!;
+
+    // 1. Warm sky gradient (温暖晨光天幕)
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, 576);
+    skyGrad.addColorStop(0, '#faeee0');
+    skyGrad.addColorStop(0.45, '#fce0cb');
+    skyGrad.addColorStop(0.75, '#f6cbaf');
+    skyGrad.addColorStop(1.0, '#ead2be');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, 1024, 576);
+
+    // 2. Radiant Morning Sun with Golden Atmosphere
+    const sunGrad = ctx.createRadialGradient(720, 160, 20, 720, 160, 480);
+    sunGrad.addColorStop(0, 'rgba(255, 255, 245, 0.85)');
+    sunGrad.addColorStop(0.25, 'rgba(255, 230, 175, 0.45)');
+    sunGrad.addColorStop(0.65, 'rgba(255, 210, 150, 0.15)');
+    sunGrad.addColorStop(1.0, 'rgba(255, 200, 140, 0.0)');
+    ctx.fillStyle = sunGrad;
+    ctx.fillRect(0, 0, 1024, 576);
+
+    // 3. Soft Blurred Bokeh Tree Canopies (远景柔焦绿树与古镇屋檐)
+    const treeColors = ['rgba(135, 152, 108, 0.28)', 'rgba(155, 172, 122, 0.22)', 'rgba(118, 138, 92, 0.25)'];
+    const treeCircles = [
+      [240, 220, 110], [310, 190, 95], [380, 230, 85],
+      [820, 240, 130], [890, 210, 110], [960, 250, 100],
+    ];
+    treeCircles.forEach(([x, y, r], idx) => {
+      ctx.fillStyle = treeColors[idx % treeColors.length];
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // 4. Distant warm blurred horizontal eave / street fence
+    ctx.fillStyle = 'rgba(215, 175, 145, 0.25)';
+    ctx.fillRect(0, 360, 1024, 40);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+
+  /**
+   * Generates procedural warm honey oak wood texture for counter table
+   */
+  private generateHoneyWoodTexture(): THREE.CanvasTexture {
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
     canvas.height = 1024;
     const ctx = canvas.getContext('2d')!;
 
-    // Rich warm walnut background
-    ctx.fillStyle = '#3a2013';
+    // Warm golden oak base
+    ctx.fillStyle = '#dfa46e';
     ctx.fillRect(0, 0, 1024, 1024);
 
-    // Wood rings and grain lines
-    ctx.lineWidth = 1.5;
-    for (let y = 0; y < 1024; y += 4) {
-      const alpha = 0.08 + Math.sin(y * 0.04) * 0.05 + Math.random() * 0.04;
-      ctx.strokeStyle = y % 16 < 8 ? `rgba(85, 45, 22, ${alpha})` : `rgba(32, 16, 8, ${alpha})`;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      for (let x = 0; x < 1024; x += 32) {
-        const offset = Math.sin(x * 0.015 + y * 0.01) * 6 + Math.cos(x * 0.005) * 4;
-        ctx.lineTo(x, y + offset);
+    // Plank seams
+    const plankHeight = 128;
+    for (let y = 0; y < 1024; y += plankHeight) {
+      ctx.fillStyle = 'rgba(155, 95, 48, 0.35)';
+      ctx.fillRect(0, y, 1024, 3);
+
+      // Subtle fine wood grain
+      for (let gy = y + 4; gy < y + plankHeight; gy += 6) {
+        const alpha = 0.05 + Math.sin(gy * 0.1) * 0.03;
+        ctx.strokeStyle = `rgba(140, 82, 38, ${alpha})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        for (let x = 0; x < 1024; x += 32) {
+          const dy = Math.sin(x * 0.015 + gy * 0.01) * 3;
+          ctx.lineTo(x, gy + dy);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
     }
 
-    // Polished varnish highlights
-    const grad = ctx.createRadialGradient(512, 512, 100, 512, 512, 600);
-    grad.addColorStop(0, 'rgba(255, 175, 90, 0.06)');
-    grad.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
-    ctx.fillStyle = grad;
+    // Sunny soft diagonal light wash
+    const lightGrad = ctx.createLinearGradient(0, 0, 1024, 1024);
+    lightGrad.addColorStop(0, 'rgba(255, 235, 205, 0.15)');
+    lightGrad.addColorStop(0.5, 'rgba(255, 215, 170, 0.05)');
+    lightGrad.addColorStop(1, 'rgba(180, 110, 60, 0.12)');
+    ctx.fillStyle = lightGrad;
     ctx.fillRect(0, 0, 1024, 1024);
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -398,21 +767,161 @@ export class SugarWorkshopScene {
   }
 
   /**
-   * Steam particles rising from the hot sugar pot
+   * Generates procedural cream white marble texture for central crafting slab
+   */
+  private generateMarbleTexture(): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d')!;
+
+    // Polished warm cream-tan marble base with defined stone edge
+    ctx.fillStyle = '#eadecd';
+    ctx.fillRect(0, 0, 512, 512);
+
+    ctx.strokeStyle = '#cbb8a1';
+    ctx.lineWidth = 12;
+    ctx.strokeRect(6, 6, 500, 500);
+
+    // Delicate warm taupe-golden marble veins
+    ctx.lineWidth = 2.2;
+    for (let i = 0; i < 6; i++) {
+      ctx.strokeStyle = `rgba(180, 155, 130, ${0.18 + i * 0.05})`;
+      ctx.beginPath();
+      let x = i * 90;
+      let y = 0;
+      ctx.moveTo(x, y);
+      while (y < 512) {
+        x += (Math.random() - 0.45) * 24;
+        y += 24;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    // Subtle satin highlight
+    const radGrad = ctx.createRadialGradient(256, 256, 50, 256, 256, 320);
+    radGrad.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
+    radGrad.addColorStop(1, 'rgba(240, 230, 220, 0.05)');
+    ctx.fillStyle = radGrad;
+    ctx.fillRect(0, 0, 512, 512);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+
+  /**
+   * Generates procedural traditional banner texture with cute mascot illustration
+   */
+  private generateBannerTexture(): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 680;
+    const ctx = canvas.getContext('2d')!;
+
+    // Warm natural linen fabric
+    ctx.fillStyle = '#f8f2e7';
+    ctx.fillRect(0, 0, 512, 680);
+
+    // Decorative traditional border
+    ctx.strokeStyle = '#c45a42';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(18, 18, 476, 644);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(26, 26, 460, 628);
+
+    // Mascot Illustration (Cute bear / pufferfish outline like Reference Image 2)
+    ctx.strokeStyle = '#9c5a3a';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(256, 260, 105, 0, Math.PI * 2); // Head
+    ctx.stroke();
+
+    // Bear ears
+    ctx.beginPath();
+    ctx.arc(175, 175, 40, 0, Math.PI * 2);
+    ctx.arc(337, 175, 40, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Eyes & Smile
+    ctx.fillStyle = '#7a3c22';
+    ctx.beginPath();
+    ctx.arc(215, 245, 10, 0, Math.PI * 2);
+    ctx.arc(297, 245, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(256, 280, 20, 0.2, Math.PI - 0.2); // Smile
+    ctx.stroke();
+
+    // Calligraphy banner text
+    ctx.fillStyle = '#b8543f';
+    ctx.font = 'bold 36px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('非遗吹糖人', 256, 430);
+
+    ctx.fillStyle = '#8a5c3e';
+    ctx.font = '22px serif';
+    ctx.fillText('一口温糖 · 一尾河豚', 256, 480);
+    ctx.font = '16px sans-serif';
+    ctx.fillText('TRADITIONAL SUGAR CRAFT', 256, 520);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+
+  /**
+   * Generates aged paper label for the tool jar
+   */
+  private generateJarLabel(): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 320;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.fillStyle = '#ebd6ba';
+    ctx.fillRect(0, 0, 256, 320);
+
+    ctx.strokeStyle = '#8a4e2e';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(10, 10, 236, 300);
+
+    ctx.fillStyle = '#4a2512';
+    ctx.font = 'bold 38px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('吹', 128, 80);
+    ctx.fillText('糖', 128, 145);
+    ctx.fillText('人', 128, 210);
+
+    // Little stamp icon
+    ctx.strokeStyle = '#c4422e';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(98, 240, 60, 45);
+    ctx.fillStyle = '#c4422e';
+    ctx.font = 'bold 18px serif';
+    ctx.fillText('吉庆', 128, 270);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+
+  /**
+   * Steam particles rising from the hot syrup pot in the golden sunlight
    */
   private buildSteamParticles(potPos: THREE.Vector3) {
-    const particleCount = 75;
+    const particleCount = 70;
     const geo = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const alphas = new Float32Array(particleCount);
     const scales = new Float32Array(particleCount);
 
     for (let i = 0; i < particleCount; i++) {
-      positions[i * 3 + 0] = potPos.x + (Math.random() - 0.5) * 0.5;
-      positions[i * 3 + 1] = potPos.y + 0.55 + Math.random() * 0.8;
-      positions[i * 3 + 2] = potPos.z + (Math.random() - 0.5) * 0.5;
+      positions[i * 3 + 0] = potPos.x + (Math.random() - 0.5) * 0.35;
+      positions[i * 3 + 1] = potPos.y + 0.38 + Math.random() * 0.7;
+      positions[i * 3 + 2] = potPos.z + (Math.random() - 0.5) * 0.35;
       alphas[i] = Math.random();
-      scales[i] = 0.04 + Math.random() * 0.06;
+      scales[i] = 0.03 + Math.random() * 0.05;
     }
 
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -423,21 +932,21 @@ export class SugarWorkshopScene {
     dotCanvas.height = 64;
     const ctx = dotCanvas.getContext('2d')!;
     const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    grad.addColorStop(0, 'rgba(255, 240, 220, 0.8)');
-    grad.addColorStop(0.5, 'rgba(255, 230, 200, 0.25)');
-    grad.addColorStop(1, 'rgba(255, 230, 200, 0.0)');
+    grad.addColorStop(0, 'rgba(255, 245, 230, 0.75)');
+    grad.addColorStop(0.5, 'rgba(255, 235, 210, 0.22)');
+    grad.addColorStop(1, 'rgba(255, 235, 210, 0.0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 64, 64);
     const steamTex = new THREE.CanvasTexture(dotCanvas);
 
     const mat = new THREE.PointsMaterial({
-      size: 0.15,
+      size: 0.16,
       map: steamTex,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.26,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      color: 0xffeacc,
+      color: 0xffedd2,
     });
 
     this.steamParticles = new THREE.Points(geo, mat);
@@ -445,7 +954,7 @@ export class SugarWorkshopScene {
   }
 
   /**
-   * Builds traditional blow tube, wooden paddle, shears, and dusting dish
+   * Builds traditional blow tube, shaping metal skewers, and chopsticks
    */
   private buildCraftTools() {
     this.craftToolsGroup.name = 'Artisan_Tools';
@@ -454,7 +963,7 @@ export class SugarWorkshopScene {
     this.bambooPipe = new THREE.Group();
     const pipeGeo = new THREE.CylinderGeometry(0.016, 0.012, 1.1, 16);
     const bambooMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#c79f58'),
+      color: new THREE.Color('#d4af68'),
       roughness: 0.45,
       metalness: 0.05,
     });
@@ -474,58 +983,76 @@ export class SugarWorkshopScene {
     tipMesh.position.x = 0.52;
     this.bambooPipe.add(tipMesh);
 
-    this.bambooPipe.position.set(-0.7, 0.02, 0.5);
-    this.bambooPipe.rotation.y = 0.35;
+    this.bambooPipe.position.set(-0.65, 0.02, 0.55);
+    this.bambooPipe.rotation.y = 0.28;
     this.craftToolsGroup.add(this.bambooPipe);
 
-    // 2. Wooden Sugar Stirring Spatula (调糖木铲)
-    const spatula = new THREE.Group();
-    const handleGeo = new THREE.CylinderGeometry(0.014, 0.012, 0.6, 12);
-    const bladeGeo = new THREE.BoxGeometry(0.07, 0.01, 0.18);
-    const darkWood = new THREE.MeshStandardMaterial({ color: 0x472814, roughness: 0.5 });
-    const sHandle = new THREE.Mesh(handleGeo, darkWood);
-    sHandle.rotation.x = Math.PI / 2;
-    const sBlade = new THREE.Mesh(bladeGeo, darkWood);
-    sBlade.position.z = 0.35;
-    spatula.add(sHandle, sBlade);
-    spatula.position.set(-0.9, 0.015, -0.15);
-    spatula.rotation.y = -0.5;
-    this.craftToolsGroup.add(spatula);
+    // 2. Metal Shaping Chopsticks & Skewers (台前金属修整扦与竹签 - 参考图 2)
+    const skewerMat = new THREE.MeshStandardMaterial({ color: 0x9c958e, roughness: 0.25, metalness: 0.8 });
+    const sk1 = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.005, 0.7, 8), skewerMat);
+    sk1.rotation.z = Math.PI / 2;
+    sk1.position.set(-0.25, 0.01, 0.65);
+    sk1.rotation.y = 0.08;
 
-    // 3. Traditional Artisan Brass Shears (雕花小铜剪)
-    const shears = new THREE.Group();
-    const shearBladeGeo = new THREE.BoxGeometry(0.02, 0.008, 0.24);
-    const s1 = new THREE.Mesh(shearBladeGeo, brassMat);
-    s1.position.x = -0.012;
-    s1.rotation.y = 0.12;
-    const s2 = new THREE.Mesh(shearBladeGeo, brassMat);
-    s2.position.x = 0.012;
-    s2.rotation.y = -0.12;
-    shears.add(s1, s2);
-    shears.position.set(0.95, 0.01, 0.55);
-    shears.rotation.y = -0.8;
-    this.craftToolsGroup.add(shears);
+    const sk2 = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.005, 0.68, 8), skewerMat);
+    sk2.rotation.z = Math.PI / 2;
+    sk2.position.set(-0.2, 0.01, 0.69);
+    sk2.rotation.y = 0.04;
 
-    // 4. Porcelain Powder / Cornstarch Dish (白瓷扑粉小碟)
-    const dishGeo = new THREE.CylinderGeometry(0.18, 0.12, 0.04, 24);
-    const porcelainMat = new THREE.MeshStandardMaterial({
-      color: 0xf5f2ec,
-      roughness: 0.15,
-      metalness: 0.05,
-    });
-    const dish = new THREE.Mesh(dishGeo, porcelainMat);
-    dish.position.set(1.2, 0.02, 0.1);
-    this.craftToolsGroup.add(dish);
-
-    // Powder inside dish
-    const powderGeo = new THREE.CircleGeometry(0.16, 24);
-    const powderMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 });
-    const powder = new THREE.Mesh(powderGeo, powderMat);
-    powder.rotation.x = -Math.PI / 2;
-    powder.position.set(1.2, 0.038, 0.1);
-    this.craftToolsGroup.add(powder);
-
+    this.craftToolsGroup.add(sk1, sk2);
     this.workshopGroup.add(this.craftToolsGroup);
+  }
+
+  /**
+   * Builds the cute white chef's hat on the pufferfish (as in Reference Image 1)
+   */
+  private buildChefHat() {
+    this.chefHatGroup = new THREE.Group();
+    this.chefHatGroup.name = 'Pufferfish_ChefHat';
+
+    const hatMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#fcfbf7'),
+      roughness: 0.55,
+      metalness: 0.02,
+    });
+
+    // Lower cylindrical band
+    const bandGeo = new THREE.CylinderGeometry(0.24, 0.22, 0.12, 24);
+    const bandMesh = new THREE.Mesh(bandGeo, hatMat);
+    bandMesh.position.y = 0.06;
+    bandMesh.castShadow = !isSoftwareGl;
+    this.chefHatGroup.add(bandMesh);
+
+    // Puffy hat crown (5 overlapping spheres)
+    const puffOffsets = [
+      [0, 0.2, 0, 0.18],
+      [0.12, 0.18, 0.08, 0.15],
+      [-0.12, 0.18, 0.08, 0.15],
+      [0.08, 0.18, -0.12, 0.15],
+      [-0.08, 0.18, -0.12, 0.15],
+    ];
+
+    puffOffsets.forEach(([x, y, z, r]) => {
+      const puffGeo = new THREE.SphereGeometry(r, 16, 16);
+      const puffMesh = new THREE.Mesh(puffGeo, hatMat);
+      puffMesh.position.set(x, y, z);
+      puffMesh.castShadow = !isSoftwareGl;
+      this.chefHatGroup.add(puffMesh);
+    });
+
+    // Place hat tilted comfortably on the pufferfish's forehead
+    this.chefHatGroup.position.set(0.18, 0.98, 0.02);
+    this.chefHatGroup.rotation.set(0.1, 0, -0.18);
+    this.chefHatGroup.scale.setScalar(0.9);
+    this.chefHatGroup.visible = this.isChefHatVisible;
+
+    this.pufferfishGroup.add(this.chefHatGroup);
+  }
+
+  public toggleChefHat() {
+    this.isChefHatVisible = !this.isChefHatVisible;
+    this.chefHatGroup.visible = this.isChefHatVisible;
+    this.onStateChange?.();
   }
 
   /**
@@ -601,6 +1128,9 @@ export class SugarWorkshopScene {
         this.pufferfishGroup.attach(m);
       }
 
+      // Attach cute chef hat accessory (from Reference Image 1)
+      this.buildChefHat();
+
       this.scene.remove(gltf.scene);
       this.scene.updateMatrixWorld(true);
 
@@ -622,11 +1152,11 @@ export class SugarWorkshopScene {
   private applyAmberSugarMaterial(meshes: THREE.Mesh[]) {
     // 1. Crystal Amber Sugar Shell material (琥珀麦芽糖玻璃 - 纯正蜂蜜金透光质感)
     const amberSugarMaterial = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color('#ffdfa8'),
+      color: new THREE.Color('#ffdca3'),
       emissive: new THREE.Color('#381804'),
       roughness: 0.04,
       metalness: 0.0,
-      transmission: 0.96,
+      transmission: 0.95,
       ior: 1.52,
       thickness: 0.35,
       attenuationColor: new THREE.Color('#ff8400'),
@@ -694,9 +1224,9 @@ export class SugarWorkshopScene {
     this.bambooPipe.position.set(-0.7, 0.02, 0.5);
     this.bambooPipe.rotation.set(0, 0.35, 0);
 
-    // Return camera to main interactive view
-    this.camera.position.set(2.85, 1.85, 4.25);
-    this.camera.lookAt(0, 0.88, 0);
+    // Return camera to cozy eye-level stall view (Reference Images 1 & 2)
+    this.camera.position.set(0, 1.48, 4.35);
+    this.camera.lookAt(0, 0.92, 0);
 
     sugarAudio.stopBreath();
     sugarAudio.playSugarChime(4);
@@ -738,7 +1268,7 @@ export class SugarWorkshopScene {
    * Reset rotation to default front-three-quarters view
    */
   public resetView() {
-    this.setRotationTarget(0, 0);
+    this.setRotationTarget(-Math.PI * 0.38, 0.08);
   }
 
   /**
@@ -1069,15 +1599,15 @@ export class SugarWorkshopScene {
     const prevRot = { ...this.currentRotation };
     const prevTarget = { ...this.rotationTarget };
 
-    this.camera.position.set(2.85, 1.85, 4.25);
-    this.camera.lookAt(0, 0.88, 0);
+    this.camera.position.set(0, 1.48, 4.35);
+    this.camera.lookAt(0, 0.92, 0);
 
     if (angle === 'front') {
       // Front faces camera with canonical 3/4 view showing mouth, eyes, fins
-      this.pufferfishGroup.rotation.set(0, 0, 0);
+      this.pufferfishGroup.rotation.set(0.08, -Math.PI * 0.38, 0);
     } else if (angle === 'side') {
       // Side profile showing round belly and lateral fins
-      this.pufferfishGroup.rotation.set(0, Math.PI / 2, 0);
+      this.pufferfishGroup.rotation.set(0, 0, 0);
     } else if (angle === 'back') {
       // Back showing caudal tail fin and dorsal fin
       this.pufferfishGroup.rotation.set(0, Math.PI, 0);
@@ -1090,7 +1620,7 @@ export class SugarWorkshopScene {
 
     // Restore
     this.camera.position.copy(prevPos);
-    this.camera.lookAt(0, 0.85, 0);
+    this.camera.lookAt(0, 0.92, 0);
     this.currentRotation = prevRot;
     this.rotationTarget = prevTarget;
     this.pufferfishGroup.rotation.x = this.currentRotation.x;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, Sparkles, Sun, ShieldCheck, BookOpen, Download, RotateCcw } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Sun, ShieldCheck, BookOpen, Download, RotateCcw, ChefHat } from 'lucide-react';
 import type { WorkshopLightingMode } from '../scene/SugarWorkshopScene';
 
 interface HeaderProps {
@@ -12,6 +12,8 @@ interface HeaderProps {
   onOpenCraftStory: () => void;
   onOpenExport: () => void;
   isCreating: boolean;
+  isChefHatVisible?: boolean;
+  onToggleChefHat?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,6 +26,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCraftStory,
   onOpenExport,
   isCreating,
+  isChefHatVisible = true,
+  onToggleChefHat,
 }) => {
   return (
     <header className="absolute top-0 left-0 right-0 z-20 flex flex-col sm:flex-row items-center justify-between px-4 sm:px-8 py-4 pointer-events-none bg-gradient-to-b from-[#140b06]/85 via-[#140b06]/50 to-transparent backdrop-blur-[2px]">
@@ -66,38 +70,54 @@ export const Header: React.FC<HeaderProps> = ({
           <span>重温诞生</span>
         </button>
 
+        {/* Chef Hat Toggle Button (Reference Image 1) */}
+        {onToggleChefHat && (
+          <button
+            onClick={onToggleChefHat}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border transition-all duration-300 ${
+              isChefHatVisible
+                ? 'border-amber-400/60 bg-amber-500/25 text-amber-200 shadow-sm'
+                : 'border-amber-500/25 bg-[#25170f]/80 text-[#bda188] hover:text-white'
+            }`}
+            title={isChefHatVisible ? '脱下厨师帽' : '戴上萌趣厨师帽 (参考图1)'}
+          >
+            <ChefHat className="w-3.5 h-3.5 text-amber-300" />
+            <span>{isChefHatVisible ? '厨师帽: 开' : '厨师帽: 关'}</span>
+          </button>
+        )}
+
         {/* Lighting mode selector */}
         <div className="flex items-center bg-[#25170f]/80 border border-amber-500/25 rounded-full p-0.5 text-xs">
           <button
-            onClick={() => onLightingChange('warm_workshop')}
+            onClick={() => onLightingChange('warm_market')}
             className={`px-2.5 py-1 rounded-full transition-colors ${
-              lightingMode === 'warm_workshop'
+              lightingMode === 'warm_market'
                 ? 'bg-amber-500 text-[#1a0f08] font-medium'
                 : 'text-[#d1b090] hover:text-white'
             }`}
-            title="暖金工坊光照"
+            title="暖阳市集光照（参考图环境）"
           >
-            暖金
+            暖阳
           </button>
           <button
-            onClick={() => onLightingChange('candle_glow')}
+            onClick={() => onLightingChange('sunset_amber')}
             className={`px-2.5 py-1 rounded-full transition-colors ${
-              lightingMode === 'candle_glow'
+              lightingMode === 'sunset_amber'
                 ? 'bg-amber-500 text-[#1a0f08] font-medium'
                 : 'text-[#d1b090] hover:text-white'
             }`}
-            title="烛影微光"
+            title="晚霞琥珀光"
           >
-            烛影
+            晚霞
           </button>
           <button
-            onClick={() => onLightingChange('morning_amber')}
+            onClick={() => onLightingChange('morning_dew')}
             className={`px-2.5 py-1 rounded-full transition-colors ${
-              lightingMode === 'morning_amber'
+              lightingMode === 'morning_dew'
                 ? 'bg-amber-500 text-[#1a0f08] font-medium'
                 : 'text-[#d1b090] hover:text-white'
             }`}
-            title="晨曦金光"
+            title="晨曦柔光"
           >
             晨曦
           </button>

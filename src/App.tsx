@@ -18,9 +18,10 @@ export default function App() {
   const [isHeld, setIsHeld] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [creationProgress, setCreationProgress] = useState<number>(1.0);
-  const [lightingMode, setLightingMode] = useState<WorkshopLightingMode>('warm_workshop');
+  const [lightingMode, setLightingMode] = useState<WorkshopLightingMode>('warm_market');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [isChefHat, setIsChefHat] = useState<boolean>(true);
 
   // Modals
   const [isInspectOpen, setIsInspectOpen] = useState<boolean>(false);
@@ -46,6 +47,7 @@ export default function App() {
       setIsCreating(workshopScene.isCreating);
       setCreationProgress(workshopScene.creationProgress);
       setIsLoaded(workshopScene.isModelLoaded);
+      setIsChefHat(workshopScene.isChefHatVisible);
     };
 
     workshopScene.onCreationComplete = () => {
@@ -66,7 +68,6 @@ export default function App() {
     window.addEventListener('resize', handleResize);
 
     return () => {
-      clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
       workshopScene.destroy();
       sceneRef.current = null;
@@ -119,13 +120,20 @@ export default function App() {
     setIsCreating(false);
   }, []);
 
+  // Toggle Chef's Hat Accessory
+  const handleToggleChefHat = useCallback(() => {
+    sceneRef.current?.toggleChefHat();
+    setIsChefHat((prev) => !prev);
+    sugarAudio.playWoodTap();
+  }, []);
+
   // Angle Presets
   const handleAngleChange = useCallback((angle: 'front' | 'side' | 'back' | 'reset') => {
     if (!sceneRef.current) return;
     if (angle === 'front') {
-      sceneRef.current.setRotationTarget(0, 0);
+      sceneRef.current.setRotationTarget(-Math.PI * 0.38, 0.08);
     } else if (angle === 'side') {
-      sceneRef.current.setRotationTarget(Math.PI / 2, 0);
+      sceneRef.current.setRotationTarget(0, 0);
     } else if (angle === 'back') {
       sceneRef.current.setRotationTarget(Math.PI, 0);
     } else if (angle === 'reset') {
@@ -175,6 +183,8 @@ export default function App() {
         onOpenCraftStory={() => setIsCraftStoryOpen(true)}
         onOpenExport={() => setIsExportOpen(true)}
         isCreating={isCreating}
+        isChefHatVisible={isChefHat}
+        onToggleChefHat={handleToggleChefHat}
       />
 
       {/* Creation Animation Story Overlay (Scene 02) */}
