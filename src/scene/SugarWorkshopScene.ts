@@ -80,6 +80,7 @@ export class SugarWorkshopScene {
   public rotationVelocity = { x: 0, y: 0 };
   public rotationTarget = { x: 0, y: 0 };
   public currentRotation = { x: 0, y: 0 };
+  private isPointerDown = false;
   private isDragging = false;
   private pointerDownPos = { x: 0, y: 0 };
   private lastPointerPos = { x: 0, y: 0 };
@@ -130,6 +131,7 @@ export class SugarWorkshopScene {
     if (!isSoftwareGl) {
       this.renderer.shadowMap.type = THREE.PCFShadowMap;
     }
+    this.canvas.style.cursor = 'grab';
 
     // 2. Scene & PMREM Environment
     this.scene = new THREE.Scene();
@@ -756,11 +758,13 @@ export class SugarWorkshopScene {
   private bindEvents() {
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
+      this.isPointerDown = true;
       this.isDragging = false;
       this.pointerDownPos = { x: e.clientX, y: e.clientY };
       this.lastPointerPos = { x: e.clientX, y: e.clientY };
       this.pointerDownTime = performance.now();
       this.isPointerOverFish = this.checkPointerHit(e.clientX, e.clientY);
+      this.canvas.style.cursor = 'grabbing';
 
       try {
         this.canvas.setPointerCapture(e.pointerId);
@@ -768,12 +772,18 @@ export class SugarWorkshopScene {
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      // 关键核心：仅在用户长按住鼠标左键（isPointerDown 为 true）时才响应旋转拖拽！
+      // 若鼠标仅是悬停滑过，严禁转动模型，彻底避免晃眼与晕眩感
+      if (!this.isPointerDown) {
+        return;
+      }
+
       const dx = e.clientX - this.pointerDownPos.x;
       const dy = e.clientY - this.pointerDownPos.y;
 
-      if (!this.isDragging && isDragMovement(dx, dy, 6)) {
+      if (!this.isDragging && isDragMovement(dx, dy, 4)) {
         this.isDragging = true;
-        // If it was held for inflation, release it because user is rotating
+        // 如果处于吹气膨胀中，拖动旋转时释放吹气
         if (this.scaleController.isHeld) {
           this.setBlowingHeld(false);
         }
@@ -784,17 +794,21 @@ export class SugarWorkshopScene {
         const moveY = e.clientY - this.lastPointerPos.y;
 
         // Apply drag delta to rotation velocity
-        this.rotationTarget.y += moveX * 0.0085;
-        this.rotationTarget.x = clampPitch(this.rotationTarget.x + moveY * 0.0085);
+        this.rotationTarget.y += moveX * 0.007;
+        this.rotationTarget.x = clampPitch(this.rotationTarget.x + moveY * 0.007);
 
-        this.rotationVelocity.y = moveX * 0.004;
-        this.rotationVelocity.x = moveY * 0.004;
+        this.rotationVelocity.y = moveX * 0.0025;
+        this.rotationVelocity.x = moveY * 0.0025;
       }
 
       this.lastPointerPos = { x: e.clientX, y: e.clientY };
     };
 
     const onPointerUp = (e: PointerEvent) => {
+      if (!this.isPointerDown) return;
+      this.isPointerDown = false;
+      this.canvas.style.cursor = 'grab';
+
       const duration = performance.now() - this.pointerDownTime;
       const wasClickOnFish = !this.isDragging && this.isPointerOverFish && duration < 350;
 
@@ -811,6 +825,15 @@ export class SugarWorkshopScene {
           this.canvas.releasePointerCapture(e.pointerId);
         }
       } catch {}
+    };
+
+    const onBlur = () => {
+      this.isPointerDown = false;
+      this.isDragging = false;
+      this.canvas.style.cursor = 'grab';
+      if (this.scaleController.isHeld) {
+        this.setBlowingHeld(false);
+      }
     };
 
     // Keyboard support: Space / Enter to inflate
@@ -831,6 +854,7 @@ export class SugarWorkshopScene {
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
     window.addEventListener('pointercancel', onPointerUp);
+    window.addEventListener('blur', onBlur);
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
   }

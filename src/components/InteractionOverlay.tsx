@@ -48,7 +48,7 @@ export const InteractionOverlay: React.FC<InteractionOverlayProps> = ({
         <div className="flex items-center justify-between w-full px-2 text-xs text-[#c9aa8d]/80">
           <div className="flex items-center gap-1.5">
             <Rotate3d className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-serif">拖动 360° 自由旋转</span>
+            <span className="font-serif">按住拖动 360° 旋转</span>
           </div>
 
           <div className="flex items-center gap-1 bg-[#20120a]/80 border border-amber-500/25 rounded-full p-0.5">

@@ -160,7 +160,7 @@ export default function App() {
         id="scene"
         tabIndex={0}
         role="button"
-        aria-label="3D吹糖人互动场景：长按或按空格键吹气膨胀，拖动可360度旋转"
+        aria-label="3D吹糖人互动场景：长按拖动可360度旋转，长按吹气按钮或按空格键吹气膨胀"
         className="w-full h-full block cursor-grab active:cursor-grabbing outline-none"
       />
 
